@@ -17,7 +17,15 @@ func init() {
 }
 
 func beforeBatchCreateCallback(scope *Scope) {
-	// 仅仅留作占位罢了，一般用于外界replace，能自动初始化一批ID什么的
+	if !scope.HasError() {
+		indirectScopeValue := scope.IndirectValue()
+
+		// 只调用第一个对象的方法即可，但要注意BeforeBatchCreate方法内部要自己从scope里取出每个元素去做处理
+		// 而不是只处理当前元素，只是借用下那处的代码罢了
+		if indirectScopeValue.Len() > 0 {
+			scope.callMethod("BeforeBatchCreate", indirectScopeValue.Index(0))
+		}
+	}
 }
 
 // updateTimeStampForBatchCreateCallback will set `CreatedAt`, `UpdatedAt` when creating
