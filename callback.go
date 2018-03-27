@@ -13,12 +13,13 @@ var DefaultCallback = &Callback{}
 //   Field `rowQueries` contains callbacks will be call when querying object with Row, Rows...
 //   Field `processors` contains all callback processors, will be used to generate above callbacks in order
 type Callback struct {
-	creates    []*func(scope *Scope)
-	updates    []*func(scope *Scope)
-	deletes    []*func(scope *Scope)
-	queries    []*func(scope *Scope)
-	rowQueries []*func(scope *Scope)
-	processors []*CallbackProcessor
+	creates      []*func(scope *Scope)
+	batchCreates []*func(scope *Scope)
+	updates      []*func(scope *Scope)
+	deletes      []*func(scope *Scope)
+	queries      []*func(scope *Scope)
+	rowQueries   []*func(scope *Scope)
+	processors   []*CallbackProcessor
 }
 
 // CallbackProcessor contains callback informations
@@ -35,12 +36,13 @@ type CallbackProcessor struct {
 
 func (c *Callback) clone() *Callback {
 	return &Callback{
-		creates:    c.creates,
-		updates:    c.updates,
-		deletes:    c.deletes,
-		queries:    c.queries,
-		rowQueries: c.rowQueries,
-		processors: c.processors,
+		creates:      c.creates,
+		batchCreates: c.batchCreates,
+		updates:      c.updates,
+		deletes:      c.deletes,
+		queries:      c.queries,
+		rowQueries:   c.rowQueries,
+		processors:   c.processors,
 	}
 }
 
@@ -54,6 +56,10 @@ func (c *Callback) clone() *Callback {
 //     })
 func (c *Callback) Create() *CallbackProcessor {
 	return &CallbackProcessor{kind: "create", parent: c}
+}
+
+func (c *Callback) BatchCreate() *CallbackProcessor {
+	return &CallbackProcessor{kind: "batch_create", parent: c}
 }
 
 // Update could be used to register callbacks for updating object, refer `Create` for usage
@@ -215,13 +221,15 @@ func sortProcessors(cps []*CallbackProcessor) []*func(scope *Scope) {
 
 // reorder all registered processors, and reset CRUD callbacks
 func (c *Callback) reorder() {
-	var creates, updates, deletes, queries, rowQueries []*CallbackProcessor
+	var creates, batchCreates, updates, deletes, queries, rowQueries []*CallbackProcessor
 
 	for _, processor := range c.processors {
 		if processor.name != "" {
 			switch processor.kind {
 			case "create":
 				creates = append(creates, processor)
+			case "batch_create":
+				batchCreates = append(batchCreates, processor)
 			case "update":
 				updates = append(updates, processor)
 			case "delete":
@@ -235,6 +243,7 @@ func (c *Callback) reorder() {
 	}
 
 	c.creates = sortProcessors(creates)
+	c.batchCreates = sortProcessors(batchCreates)
 	c.updates = sortProcessors(updates)
 	c.deletes = sortProcessors(deletes)
 	c.queries = sortProcessors(queries)
