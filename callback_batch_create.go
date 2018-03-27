@@ -89,11 +89,18 @@ func batchCreateCallback(scope *Scope) {
 					if !field.IsBlank {
 						v = field.Field.Interface()
 					} else {
-						// 如果field为空，但是有默认值，就直接塞入默认值即可
-						if field.HasDefaultValue {
-							v = field.TagSettings["DEFAULT"]
+						// 如果不是主键
+						if !field.IsPrimaryKey {
+							// 若有默认值，就直接塞入默认值即可
+							if field.HasDefaultValue {
+								v = field.TagSettings["DEFAULT"]
+								field.Set(v) // 回写原对象
+							} else {
+								// 没默认值的话，就用原对象值，0啊空字符串什么的
+								v = field.Field.Interface()
+							}
 						}
-						// 否则的话v就是nil嘛，然后最终会体现成NULL
+						// 否则的话v就是nil嘛，然后最终会体现成NULL，能自动支持主键的自增行为
 					}
 
 					valuePlaceholders = append(valuePlaceholders, scope.AddToVars(v))
