@@ -10,9 +10,14 @@ import (
 // Define callbacks for batch creating
 func init() {
 	DefaultCallback.BatchCreate().Register("gorm:begin_transaction", beginTransactionCallback)
+	DefaultCallback.BatchCreate().Register("gorm:before_batch_create", beforeBatchCreateCallback)
 	DefaultCallback.BatchCreate().Register("gorm:update_time_stamp", updateTimeStampForBatchCreateCallback)
 	DefaultCallback.BatchCreate().Register("gorm:batch_create", batchCreateCallback)
 	DefaultCallback.BatchCreate().Register("gorm:commit_or_rollback_transaction", commitOrRollbackTransactionCallback)
+}
+
+func beforeBatchCreateCallback(scope *Scope) {
+	// 仅仅留作占位罢了，一般用于外界replace，能自动初始化一批ID什么的
 }
 
 // updateTimeStampForBatchCreateCallback will set `CreatedAt`, `UpdatedAt` when creating
@@ -24,7 +29,7 @@ func updateTimeStampForBatchCreateCallback(scope *Scope) {
 
 		// 挨个元素去检查，为空则给予值
 		for elementIndex := 0; elementIndex < indirectScopeValue.Len(); elementIndex++ {
-			fields := filedsWithIndexForBatch(scope, elementIndex)
+			fields := FiledsWithIndexForBatch(scope, elementIndex)
 			for _, field := range fields {
 				if !field.IsBlank {
 					continue
@@ -61,7 +66,7 @@ func batchCreateCallback(scope *Scope) {
 		)
 
 		// 列名获取
-		fields := filedsWithIndexForBatch(scope, 0)
+		fields := FiledsWithIndexForBatch(scope, 0)
 		existColumnNames := map[string]bool{}
 		for _, field := range fields {
 			if !field.IsNormal || field.IsIgnored {
@@ -82,7 +87,7 @@ func batchCreateCallback(scope *Scope) {
 		for elementIndex := 0; elementIndex < indirectScopeValue.Len(); elementIndex++ {
 			valuePlaceholders := []string{}
 
-			fields := filedsWithIndexForBatch(scope, elementIndex)
+			fields := FiledsWithIndexForBatch(scope, elementIndex)
 			for _, field := range fields {
 				if existColumnNames[field.Name] {
 					var v interface{}
@@ -140,7 +145,7 @@ func batchCreateCallback(scope *Scope) {
 	}
 }
 
-func filedsWithIndexForBatch(scope *Scope, index int) []*Field {
+func FiledsWithIndexForBatch(scope *Scope, index int) []*Field {
 	indirectScopeValue := scope.IndirectValue()
 	if index >= indirectScopeValue.Len() { // 不能越界
 		return nil
