@@ -20,6 +20,11 @@ func beforeBatchCreateCallback(scope *Scope) {
 	if !scope.HasError() {
 		indirectScopeValue := scope.IndirectValue()
 
+		if indirectScopeValue.Kind() != reflect.Slice {
+			scope.Err(fmt.Errorf("beforeBatchCreateCallback cannot be called for non-slice value, %+v given", indirectScopeValue.Interface()))
+			return
+		}
+
 		// 只调用第一个对象的方法即可，但要注意BeforeBatchCreate方法内部要自己从scope里取出每个元素去做处理
 		// 而不是只处理当前元素，只是借用下那处的代码罢了
 		if indirectScopeValue.Len() > 0 {
@@ -34,6 +39,11 @@ func updateTimeStampForBatchCreateCallback(scope *Scope) {
 		now := NowFunc()
 
 		indirectScopeValue := scope.IndirectValue()
+
+		if indirectScopeValue.Kind() != reflect.Slice {
+			scope.Err(fmt.Errorf("updateTimeStampForBatchCreateCallback cannot be called for non-slice value, %+v given", indirectScopeValue.Interface()))
+			return
+		}
 
 		// 挨个元素去检查，为空则给予值
 		for elementIndex := 0; elementIndex < indirectScopeValue.Len(); elementIndex++ {
@@ -155,6 +165,9 @@ func batchCreateCallback(scope *Scope) {
 
 func FiledsWithIndexForBatch(scope *Scope, index int) []*Field {
 	indirectScopeValue := scope.IndirectValue()
+	if indirectScopeValue.Kind() != reflect.Slice { // 非数组不考虑
+		return nil
+	}
 	if index >= indirectScopeValue.Len() { // 不能越界
 		return nil
 	}
